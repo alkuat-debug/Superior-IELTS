@@ -1,4 +1,4 @@
-const CACHE_NAME = 'superior-ielts-v4.1-assets';
+const CACHE_NAME = 'superior-ielts-v4.2-assets';
 const APP_SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './assets/unsplash-library-study-group.jpg', './assets/unsplash-library-study-focus.jpg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
