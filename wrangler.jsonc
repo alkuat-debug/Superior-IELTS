@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "superior-ielts-ai",
+  "main": "server/index.js",
+  "compatibility_date": "2026-09-25",
+  "workers_dev": true,
+  "vars": {
+    "APP_ORIGINS": "http://localhost:8000,http://127.0.0.1:8000"
+  }
+}

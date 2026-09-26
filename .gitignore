@@ -1,0 +1,25 @@
+# Local/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Node / build outputs
+node_modules/
+dist/
+build/
+coverage/
+
+# OS/editor temp files
+*.swp
+*.swo
+*~
+
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

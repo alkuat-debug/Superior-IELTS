@@ -1,80 +1,51 @@
 # Superior IELTS
 
-**AI-powered IELTS preparation platform** — a lightweight single-page web application built with vanilla HTML, CSS and JavaScript.
+Одностраничный IELTS-тренажёр на HTML, CSS и JavaScript без сборки фронтенда. Данные ученика, история, заметки и планы сохраняются в его браузере. ИИ нужен для Writing/Speaking feedback, расшифровки аудио и персонального недельного плана.
 
-## Overview
+## Что изменено
 
-Superior IELTS is a product prototype for practical IELTS preparation. It brings practice, AI feedback, personal planning, notes and progress tracking into one interface.
+- Прямые запросы из браузера в Gemini заменены на серверный endpoint Cloudflare Worker.
+- Gemini API key хранится только в секретах Worker; его больше нет в интерфейсе или коде клиента.
+- Все ИИ-действия (Writing, Speaking, аудио-расшифровка, чат и генерация плана) используют один API endpoint.
+- Worker проверяет Origin, формат и размер запросов, отвечает сообщениями об ошибках без раскрытия ответа Google и ограничивает запросы с одного IP (12 в минуту на экземпляр Worker).
+- Gemini 3.8 Flash закреплена на сервере; клиент не может выбрать более дорогую модель. Для бесплатного тарифа Google указывает бесплатную обработку токенов, но квоты зависят от модели и аккаунта.
+- В профиль добавлены поле адреса сервера и проверка подключения.
+- Обновлена версия кэша PWA, чтобы пользователи получили новый интерфейс.
 
-## Main features
+## Локальный запуск
 
-- **AI Writing review** — IELTS essay review with criterion-based feedback.
-- **Speaking review** — transcript-based speaking feedback and voice input tools.
-- **Reading & Listening practice** — timed sessions, multiple question types, scoring and error review.
-- **AI study plan** — personalised weekly planning based on the learner's goal and context.
-- **Personal dashboard** — daily focus, streaks, calendar and progress indicators.
-- **Notes / notebook** — Markdown-friendly notes, search, tags, links and export/import.
-- **Optional Supabase sync** — account-based cloud synchronisation for notes while local-first storage remains available.
-- **PWA support** — manifest and service worker included for installable/offline shell behaviour.
+Нужны Node.js и npm.
 
-## Technology
-
-- HTML5
-- CSS3
-- Vanilla JavaScript (no framework, no build step)
-- Supabase JS client via jsDelivr when cloud sync is enabled
-- Browser storage for local-first data persistence
-- Web APIs such as MediaRecorder for voice input
-
-## Run locally
-
-Serve the folder with a local web server for the most complete browser behaviour.
-
-```bash
-python -m http.server 8000
+```powershell
+npm install
+Copy-Item .dev.vars.example .dev.vars
 ```
 
-Open `http://localhost:8000`.
+Откройте `.dev.vars`, вставьте свой ключ Google AI Studio вместо `replace-me`. В двух терминалах из папки проекта запустите `npm run serve` (сайт) и `npm run dev` (Worker). Откройте `http://localhost:8000`, затем **Профиль → Настройки AI-сервера**. Укажите `http://localhost:8787/api/ai` и нажмите «Проверить подключение».
 
-## AI configuration
+`.dev.vars` — локальный секретный файл, он исключён из Git. Не отправляйте и не публикуйте его.
 
-The application asks the user for a **Gemini API key** in Profile settings and keeps it in the browser's local storage. **Do not commit personal API keys to this repository.**
+## Бесплатное размещение
 
-## Optional Supabase sync
+1. Создайте бесплатный проект Cloudflare и выполните `npx wrangler login`.
+2. В `wrangler.jsonc` замените `APP_ORIGINS` на точный HTTPS-origin опубликованного сайта (например, `https://your-project.pages.dev`). Допускается несколько origin через запятую. Для production удалите адреса localhost.
+3. Установите секрет Gemini и опубликуйте Worker:
 
-Cloud notes sync is not hardcoded into the repository. Use the in-app synchronisation settings and provide:
+   ```powershell
+   npx wrangler secret put GEMINI_API_KEY
+   npm run deploy
+   ```
 
-- Supabase Project URL
-- Supabase publishable / anonymous client key
+4. В профиле сайта укажите `https://<имя-worker>.<аккаунт>.workers.dev/api/ai` и проверьте соединение.
 
-Use only a client-safe key together with properly configured Row Level Security (RLS). Never place a Supabase `service_role` key in frontend code.
+Worker бесплатного плана Cloudflare ограничен 100 000 входящих запросов в сутки; бесплатная квота Gemini зависит от модели и может меняться. Чтобы исключить оплату модели, используй API-ключ проекта AI Studio без подключённого биллинга и периодически проверяй страницу квот в AI Studio. Если подключить платный проект, вызовы Gemini тарифицируются по его условиям. У Gemini бесплатного уровня отправленные запросы и ответы могут использоваться Google для улучшения продуктов. Сообщите об этом пользователям и не отправляйте персональные данные. Для приватности текста Google предлагает платный уровень, поэтому он не подходит требованию «бесплатно».
 
-## Security
+## Важное ограничение перед публичным запуском
 
-Secrets are intentionally excluded from the public source. Before every push, check that you have not added:
+Worker защищает Gemini key от просмотра в исходном коде, но CORS и лимит 12 запросов в минуту **не являются полноценной авторизацией**; лимит в коде приблизительный и распределён по экземплярам Worker. Эта версия подходит для личного использования и ограниченного теста. Перед открытием сайта широкой публике добавьте вход пользователей (например, Cloudflare Access или собственную проверку сессии) и устойчивый общий лимит на пользователя/IP. Иначе посторонние могут расходовать бесплатную квоту от имени вашего Worker.
 
-```text
-.env
-API keys
-access tokens
-service_role keys
-private credentials
-```
+## Локальные данные и функции
 
-## Project structure
+Приложение работает локально для каждого браузера; сервер не хранит профиль, эссе, историю или заметки. При ИИ-запросе только нужный текст/аудио отправляется через Worker в Gemini. Проверки чтения и аудирования, заметки, календарь, профиль и прогресс продолжают работать без ИИ. Облачная синхронизация заметок Supabase остаётся отдельной необязательной настройкой и требует собственного проекта с корректными RLS-политиками.
 
-```text
-Superior-IELTS/
-├── index.html
-├── manifest.json
-├── sw.js
-├── icon-192.png
-├── icon-512.png
-├── README.md
-├── .gitignore
-└── assets/
-```
-
-## Portfolio / hackathon description
-
-Superior IELTS demonstrates a complete product prototype rather than isolated code snippets: product UI, client-side state, AI integrations, IELTS practice flows, scoring logic, local persistence, notes and optional cloud synchronisation are combined in one application.
+Запись Speaking ограничена 4 МБ для передачи через бесплатный Worker; при превышении можно использовать короткую запись или ввести transcript вручную.
